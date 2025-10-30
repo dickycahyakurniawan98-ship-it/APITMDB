@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TMDB Movie Data Fetcher</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom styles for better readability and structure */
+        .data-label {
+            @apply font-semibold text-gray-600 dark:text-gray-400;
+        }
+        .data-value {
+            @apply text-gray-800 dark:text-gray-200 break-words;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-50 min-h-screen p-4 sm:p-8 font-sans">
+
+    <div class="max-w-4xl mx-auto">
+        <!-- Header -->
+        <header class="text-center mb-10">
+            <h1 class="text-3xl font-bold text-indigo-600 mb-2">Pencari Data Film TMDB</h1>
+            <p class="text-gray-600 dark:text-gray-400">Masukkan ID Film TMDB untuk mengambil detail lengkap.</p>
+        </header>
+
+        <!-- Input Section -->
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg mb-8 flex flex-col sm:flex-row gap-4 items-center">
+            <label for="movieId" class="font-medium text-lg min-w-[100px]">ID Film TMDB:</label>
+            <input type="text" id="movieId" placeholder="Contoh: 550 (Fight Club)"
+                   class="flex-grow p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 dark:bg-gray-700 dark:text-white"
+                   value="550"> <!-- Default value for easy testing -->
+            <button id="fetchButton"
+                    class="w-full sm:w-auto px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition duration-150 shadow-md hover:shadow-lg transform hover:scale-[1.01] active:scale-[0.99] disabled:bg-indigo-400">
+                Ambil Data
+            </button>
+        </div>
+
+        <!-- Loading & Message Area -->
+        <div id="messageArea" class="text-center p-4 mb-8 hidden">
+            <p id="loadingText" class="text-indigo-500 font-medium hidden">Memuat data...</p>
+            <p id="errorText" class="text-red-500 font-medium hidden"></p>
+        </div>
+
+        <!-- Results Display Area -->
+        <div id="resultsContainer" class="hidden">
+            <h2 class="text-2xl font-bold border-b pb-2 mb-6 text-gray-800 dark:text-gray-100">Detail Film</h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Poster Column -->
+                <div class="md:col-span-1">
+                    <img id="posterImage" src="" alt="Poster Film" class="w-full h-auto rounded-xl shadow-xl border-4 border-gray-200 dark:border-gray-700"
+                         onerror="this.onerror=null; this.src='https://placehold.co/300x450/374151/FFFFFF?text=Poster+Tidak+Tersedia';">
+                    <p class="text-sm text-center text-gray-500 mt-2">
+                        <span class="data-label">Poster URL:</span> <span id="posterUrlValue" class="data-value text-xs italic"></span>
+                    </p>
+                </div>
+
+                <!-- Data Details Column -->
+                <div class="md:col-span-2 space-y-4">
+                    <!-- Title Section -->
+                    <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+                        <div class="mb-2">
+                            <div class="data-label">Judul (TMDB):</div>
+                            <div id="titleValue" class="text-2xl font-bold text-indigo-600 data-value"></div>
+                        </div>
+                        <div>
+                            <div class="data-label">Judul Asli:</div>
+                            <div id="originalTitleValue" class="data-value italic"></div>
+                        </div>
+                    </div>
+
+                    <!-- Main Info Grid -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+                            <div class="data-label">ID IMDB:</div>
+                            <div id="imdbIdValue" class="data-value"></div>
+                        </div>
+                        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+                            <div class="data-label">ID TMDB:</div>
+                            <div id="tmdbIdValue" class="data-value"></div>
+                        </div>
+                        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+                            <div class="data-label">Tanggal Rilis:</div>
+                            <div id="releaseDateValue" class="data-value"></div>
+                        </div>
+                        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+                            <div class="data-label">Durasi (Menit):</div>
+                            <div id="runtimeValue" class="data-value"></div>
+                        </div>
+                        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+                            <div class="data-label">Rating TMDB (Rata-rata/Total):</div>
+                            <div id="ratingValue" class="data-value"></div>
+                        </div>
+                        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+                            <div class="data-label">Bahasa Asli:</div>
+                            <div id="languageValue" class="data-value uppercase"></div>
+                        </div>
+                    </div>
+
+                    <!-- Financial & Tagline -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+                            <div class="data-label">Anggaran (Budget):</div>
+                            <div id="budgetValue" class="data-value"></div>
+                        </div>
+                        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+                            <div class="data-label">Pendapatan (Revenue):</div>
+                            <div id="revenueValue" class="data-value"></div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+                        <div class="data-label">Tagline:</div>
+                        <div id="taglineValue" class="data-value italic"></div>
+                    </div>
+                    
+                </div>
+            </div>
+
+            <!-- Overview Section -->
+            <div class="mt-8 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg">
+                <h3 class="data-label text-xl mb-3 border-b pb-1">Sinopsis (Overview):</h3>
+                <p id="overviewValue" class="data-value"></p>
+            </div>
+            
+        </div>
+    </div>
+
+    <script>
+        // *** PENTING: GANTI DENGAN KUNCI API TMDB ANDA ***
+        const TMDB_API_KEY = 'YOUR_TMDB_API_KEY'; 
+        const TMDB_BASE_URL = 'https://api.themoviedb.org/3/movie/';
+        const TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
+
+        // Element references
+        const movieIdInput = document.getElementById('movieId');
+        const fetchButton = document.getElementById('fetchButton');
+        const messageArea = document.getElementById('messageArea');
+        const loadingText = document.getElementById('loadingText');
+        const errorText = document.getElementById('errorText');
+        const resultsContainer = document.getElementById('resultsContainer');
+        
+        // Data display references
+        const titleValue = document.getElementById('titleValue');
+        const originalTitleValue = document.getElementById('originalTitleValue');
+        const imdbIdValue = document.getElementById('imdbIdValue');
+        const tmdbIdValue = document.getElementById('tmdbIdValue');
+        const releaseDateValue = document.getElementById('releaseDateValue');
+        const runtimeValue = document.getElementById('runtimeValue');
+        const ratingValue = document.getElementById('ratingValue');
+        const languageValue = document.getElementById('languageValue');
+        const budgetValue = document.getElementById('budgetValue');
+        const revenueValue = document.getElementById('revenueValue');
+        const taglineValue = document.getElementById('taglineValue');
+        const overviewValue = document.getElementById('overviewValue');
+        const posterImage = document.getElementById('posterImage');
+        const posterUrlValue = document.getElementById('posterUrlValue');
+
+        // Helper function for currency formatting
+        const formatCurrency = (amount) => {
+            if (amount === 0) return 'N/A';
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 0
+            }).format(amount);
+        };
+
+        // Main fetching function
+        const fetchMovieData = async (movieId) => {
+            // Check for API key presence
+            if (TMDB_API_KEY === 'YOUR_TMDB_API_KEY') {
+                errorText.textContent = 'ERROR: Silakan ganti "YOUR_TMDB_API_KEY" dengan kunci API TMDB Anda yang sebenarnya.';
+                errorText.classList.remove('hidden');
+                return;
+            }
+
+            // Reset UI and show loading
+            errorText.classList.add('hidden');
+            resultsContainer.classList.add('hidden');
+            messageArea.classList.remove('hidden');
+            loadingText.classList.remove('hidden');
+            fetchButton.disabled = true;
+
+            const url = `${TMDB_BASE_URL}${movieId}?api_key=${TMDB_API_KEY}&language=en-US`;
+
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.status_message || 'Gagal mengambil data film.');
+                }
+
+                // Update Data Fields
+                titleValue.textContent = data.title || 'N/A';
+                originalTitleValue.textContent = data.original_title || 'N/A';
+                imdbIdValue.textContent = data.imdb_id || 'N/A';
+                tmdbIdValue.textContent = data.id || 'N/A';
+                releaseDateValue.textContent = data.release_date || 'N/A';
+                runtimeValue.textContent = data.runtime ? `${data.runtime} menit` : 'N/A';
+                ratingValue.textContent = data.vote_average && data.vote_count ? 
+                    `${data.vote_average.toFixed(1)} / ${data.vote_count} suara` : 'N/A';
+                languageValue.textContent = data.original_language || 'N/A';
+                budgetValue.textContent = formatCurrency(data.budget);
+                revenueValue.textContent = formatCurrency(data.revenue);
+                taglineValue.textContent = data.tagline || 'N/A';
+                overviewValue.textContent = data.overview || 'Sinopsis tidak tersedia.';
+
+                // Poster Image
+                if (data.poster_path) {
+                    const posterUrl = TMDB_IMAGE_BASE_URL + data.poster_path;
+                    posterImage.src = posterUrl;
+                    posterUrlValue.textContent = posterUrl;
+                } else {
+                    posterImage.src = 'https://placehold.co/300x450/374151/FFFFFF?text=Poster+Tidak+Tersedia';
+                    posterUrlValue.textContent = 'Tidak tersedia.';
+                }
+
+                // Show results
+                resultsContainer.classList.remove('hidden');
+
+            } catch (error) {
+                console.error('Fetch Error:', error);
+                errorText.textContent = `Gagal: ${error.message}. Pastikan ID Film benar.`;
+                errorText.classList.remove('hidden');
+            } finally {
+                // Hide loading and re-enable button
+                loadingText.classList.add('hidden');
+                fetchButton.disabled = false;
+            }
+        };
+
+        // Event listener for the button
+        fetchButton.addEventListener('click', () => {
+            const movieId = movieIdInput.value.trim();
+            if (movieId) {
+                fetchMovieData(movieId);
+            } else {
+                errorText.textContent = 'Harap masukkan ID Film TMDB.';
+                errorText.classList.remove('hidden');
+                messageArea.classList.remove('hidden');
+            }
+        });
+
+        // Trigger fetch on Enter key press
+        movieIdInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                fetchButton.click();
+            }
+        });
+        
+        // Initial fetch on load if default value is set
+        window.onload = () => {
+            if (movieIdInput.value) {
+                fetchMovieData(movieIdInput.value);
+            }
+        };
+    </script>
+
+</body>
+</html>
