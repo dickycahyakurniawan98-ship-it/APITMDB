@@ -63,6 +63,12 @@
                 <div class="md:col-span-1">
                     <img id="posterImage" src="" alt="Poster Film" class="w-full h-auto rounded-xl shadow-xl border-4 border-gray-200 dark:border-gray-700"
                          onerror="this.onerror=null; this.src='https://placehold.co/300x450/374151/FFFFFF?text=Poster+Tidak+Tersedia';">
+                    
+                    <!-- Tombol Unduh Poster -->
+                    <a id="downloadPosterButton" href="#" download class="hidden w-full mt-3 px-4 py-2 bg-green-500 text-white text-center font-semibold rounded-lg hover:bg-green-600 transition duration-150 shadow-md">
+                        Unduh Poster
+                    </a>
+                    
                     <p class="text-sm text-center text-gray-500 mt-2">
                         <span class="data-label">Poster URL:</span> <span id="posterUrlValue" class="data-value text-xs italic"></span>
                     </p>
@@ -152,6 +158,7 @@
         const loadingText = document.getElementById('loadingText');
         const errorText = document.getElementById('errorText');
         const resultsContainer = document.getElementById('resultsContainer');
+        const downloadPosterButton = document.getElementById('downloadPosterButton'); // Tambahan: Tombol Unduh
         
         // Data display references
         const titleValue = document.getElementById('titleValue');
@@ -194,6 +201,7 @@
             messageArea.classList.remove('hidden');
             loadingText.classList.remove('hidden');
             fetchButton.disabled = true;
+            downloadPosterButton.classList.add('hidden'); // Sembunyikan tombol download saat memuat
 
             const url = `${TMDB_BASE_URL}${movieId}?api_key=${TMDB_API_KEY}&language=en-US`;
 
@@ -220,14 +228,26 @@
                 taglineValue.textContent = data.tagline || 'N/A';
                 overviewValue.textContent = data.overview || 'Sinopsis tidak tersedia.';
 
-                // Poster Image
+                // Poster Image and Download Button Logic
                 if (data.poster_path) {
-                    const posterUrl = TMDB_IMAGE_BASE_URL + data.poster_path;
-                    posterImage.src = posterUrl;
-                    posterUrlValue.textContent = posterUrl;
+                    // Gunakan resolusi yang lebih tinggi untuk unduhan, misalnya w780 atau original
+                    const downloadPosterUrl = `https://image.tmdb.org/t/p/original${data.poster_path}`;
+                    const displayPosterUrl = TMDB_IMAGE_BASE_URL + data.poster_path;
+                    
+                    posterImage.src = displayPosterUrl;
+                    posterUrlValue.textContent = displayPosterUrl;
+
+                    // Update tombol download
+                    downloadPosterButton.href = downloadPosterUrl;
+                    // Beri nama file yang bagus
+                    const safeTitle = (data.title || 'movie').replace(/[^a-z0-9]/gi, '_').toLowerCase();
+                    downloadPosterButton.download = `${safeTitle}_tmdb_${data.id}_poster.jpg`;
+                    downloadPosterButton.classList.remove('hidden');
+
                 } else {
                     posterImage.src = 'https://placehold.co/300x450/374151/FFFFFF?text=Poster+Tidak+Tersedia';
                     posterUrlValue.textContent = 'Tidak tersedia.';
+                    downloadPosterButton.classList.add('hidden'); // Pastikan tersembunyi jika poster tidak ada
                 }
 
                 // Show results
